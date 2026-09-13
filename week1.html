@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL Shader Template</title>
+    <style>
+        /* Remove default margins and hide scrollbars */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+        /* Make canvas cover the entire screen */
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gl-canvas"></canvas>
+
+    <script>
+        const canvas = document.querySelector('#gl-canvas');
+        const gl = canvas.getContext('webgl');
+
+        if (!gl) {
+            alert('WebGL not supported!');
+        }
+
+        // Object to store normalized or raw mouse coordinates
+        const mouse = { x: 0, y: 0 };
+
+        // Track mouse movement (mapping WebGL's bottom-left origin)
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            // Invert Y because browser coordinates start at top-left, WebGL starts at bottom-left
+            mouse.y = window.innerHeight - e.clientY;
+        });
+
+        // Resize canvas to match display size
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Vertex shader: simple full-quad position pass
+        const vsSource = `
+            attribute vec2 a_position;
+            void main() {
+                gl_Position = vec4(a_position, 0.0, 1.0);
+            }
+        `;
+
+        // Fragment shader: uses u_resolution, u_time, and u_mouse
+        const fsSource = `
+            // Author @patriciogv ( patriciogonzalezvivo.com ) - 2015
+            //i used rotate2d and patterns
+            #ifdef GL_ES
+            precision mediump float;
+            #endif
+
+            #define PI 3.14159265359
+
+            uniform vec2 u_resolution;
+            uniform float u_time;
+
+            mat2 scale2d(float _angle){
+                return mat2(-sin(_angle),-sin(_angle),
+                            sin(_angle),-sin(_angle));
+            }
+
+            float box(in vec2 _st, in vec2 _size){
+                _size = vec2(0.5) - _size*0.020;
+                vec2 uv = smoothstep(_size,
+                                    _size+vec2(0.001),
+                                    _st);
+                uv *= smoothstep(_size,
+                                _size+vec2(0.001),
+                                vec2(1.0)-_st);
+                return uv.x*uv.y;
+            }
+
+            float cross(in vec2 _st, float _size){
+                return  box(_st, vec2(_size,_size)) +
+                        box(_st, vec2(_size,_size));
+            }
+
+            vec2 brickTile(vec2 _st, float _zoom){
+                _st *= _zoom;
+
+                // Here is where the offset is happening
+                _st.x += step(0.512, mod(_st.y,0.928)) * 2.188;
+
+                return fract(_st);
+            }
+
+            void main(){
+                vec2 st = gl_FragCoord.xy/u_resolution.xy;
+                vec3 color = vec3(0.0);
+            float d = 0.0;
+                // move space from the center to the vec2(0.0)
+                //st = st *3.160,0.0;
+
+               //st = brickTile(st,2.0);
+
+            st *= 6.0;    // Scale up the space by 3
+                st = fract(st);
+                st -= vec2(0.5,0.5);
+
+                // rotate the space
+                st = scale2d(sin(u_time)*1.9 ) * st;
+
+                // move it back to the original place
+                //st += vec2(1.000,0.740);
+
+                // Show the coordinates of the space on the background
+                //color = vec3(st.x,st.y,0.0);
+
+              d = length(min(abs(st)-0.308,1.808));
+                // Add the shape on the foreground
+                 //color = vec3(st,0.0);
+
+                gl_FragColor = vec4(vec3( smoothstep(-0.292,0.904,d)* smoothstep(0.854,0.356,d)) ,1.072);
+            }
+        `;
+
+        // Helper function to compile shaders
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error(gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+        // Link program
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        // Set up rectangle geometry covering the screen (two triangles)
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        const positions = new Float32Array([
+            -1, -1,
+             1, -1,
+            -1,  1,
+            -1,  1,
+             1, -1,
+             1,  1,
+        ]);
+        gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+        const positionLocation = gl.getAttribLocation(program, "a_position");
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+        // Get uniform locations
+        const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+        const timeLocation = gl.getUniformLocation(program, "u_time");
+        const mouseLocation = gl.getUniformLocation(program, "u_mouse");
+
+        // Render loop
+        let startTime = Date.now();
+        function render() {
+            let currentTime = (Date.now() - startTime) * 0.001;
+
+            // Pass uniform data to shader
+            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+            gl.uniform1f(timeLocation, currentTime);
+            gl.uniform2f(mouseLocation, mouse.x, mouse.y);
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            requestAnimationFrame(render);
+        }
+        render();
+    </script>
+</body>
+</html>

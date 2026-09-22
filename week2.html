@@ -1,0 +1,574 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL Shader Feedback</title>
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+
+<canvas id="gl-canvas"></canvas>
+
+<script>
+const canvas = document.querySelector("#gl-canvas");
+const gl = canvas.getContext("webgl");
+
+if (!gl) {
+    alert("WebGL not supported!");
+    throw new Error("WebGL not supported");
+}
+
+
+// ------------------------------------------------------------
+// Mouse
+// ------------------------------------------------------------
+
+const mouse = {
+    x: 0,
+    y: 0,
+    down: 0 // Added mouse down state (0 = up, 1 = down)
+};
+
+window.addEventListener("mousemove", (e) => {
+    mouse.x = e.clientX;
+    mouse.y = window.innerHeight - e.clientY;
+});
+
+// Added mouse event listeners
+window.addEventListener("mousedown", () => {
+    mouse.down = 1;
+});
+
+window.addEventListener("mouseup", () => {
+    mouse.down = 0;
+});
+
+
+// ------------------------------------------------------------
+// Resize
+// ------------------------------------------------------------
+
+function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = Math.floor(window.innerWidth * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+
+    canvas.style.width = window.innerWidth + "px";
+    canvas.style.height = window.innerHeight + "px";
+
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    // Recreate the feedback buffers at the new resolution.
+    createFeedbackBuffers();
+}
+
+window.addEventListener("resize", resize);
+
+
+// ------------------------------------------------------------
+// Vertex shader
+// ------------------------------------------------------------
+
+const vsSource = `
+attribute vec2 a_position;
+
+void main() {
+    gl_Position = vec4(a_position, 0.0, 1.0);
+}
+`;
+
+
+// ------------------------------------------------------------
+// Fragment shader
+// ------------------------------------------------------------
+
+const fsSource = `
+// Author @patriciogv - 2015
+// http://patriciogonzalezvivo.com
+
+// My own port of this processing code by @beesandbombs
+// https://dribbble.com/shots/1696376-Circle-wave
+
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+uniform float u_time;
+
+vec2 random2(vec2 st){
+    st = vec2( dot(st,vec2(127.1,311.7)),
+              dot(st,vec2(269.5,183.3)) );
+    return -1.0 + 2.0*fract(sin(st)*43758.5453123);
+}
+
+// Gradient Noise by Inigo Quilez - iq/2013
+// https://www.shadertoy.com/view/XdXGW8
+float noise(vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+
+    vec2 u = f*f*(3.0-2.0*f);
+
+    return mix( mix( dot( random2(i + vec2(0.0,0.0) ), f - vec2(0.0,0.0) ),
+                     dot( random2(i + vec2(1.0,0.0) ), f - vec2(1.0,0.0) ), u.x),
+                mix( dot( random2(i + vec2(0.0,1.0) ), f - vec2(0.0,1.0) ),
+                     dot( random2(i + vec2(1.0,1.0) ), f - vec2(1.0,1.0) ), u.x), u.y);
+}
+
+mat2 rotate2d(float _angle){
+    return mat2(cos(_angle),-sin(_angle),
+                sin(_angle),cos(_angle));
+}
+
+float shape(vec2 st, float radius) {
+	st = vec2(0.5)-st;
+    float r = length(st)*1.9;
+    float a = atan(st.y,st.x);
+    float m = abs(mod(a+u_time-2.0,29.0))/39.0;
+    float f = radius;
+ 
+    m += noise(st+u_time/3.0)*-0.836;
+    // a *= 1.+abs(atan(u_time*0.2))*9.0;
+     a *= 3.+noise(st+u_time*.50)*120.0;
+    f += tan(a*98.)*noise(st+u_time*0.560)*0.9;
+    f += (sin(a*2.)*.1*pow(m,2.));
+    return 5.86-smoothstep(f,f*1.9,r);
+}
+
+float shapeBorder(vec2 st, float radius, float width) {
+    return shape(st,radius)-shape(st,radius+width);
+}
+
+void main() {
+	vec2 st = gl_FragCoord.xy/u_resolution.xy;
+	vec3 color = vec3(1.0) * shapeBorder(st,0.480,0.124);
+    
+    
+//0.4-color can change the greyscale
+	gl_FragColor = vec4( 0.5-color, 1.0 );
+}
+`;
+
+function createShader(gl, type, source) {
+
+    const shader = gl.createShader(type);
+
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+
+        console.error(
+            gl.getShaderInfoLog(shader)
+        );
+
+        gl.deleteShader(shader);
+
+        return null;
+    }
+
+    return shader;
+}
+
+const vertexShader =
+    createShader(gl, gl.VERTEX_SHADER, vsSource);
+
+const fragmentShader =
+    createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+
+const program = gl.createProgram();
+
+gl.attachShader(program, vertexShader);
+gl.attachShader(program, fragmentShader);
+
+gl.linkProgram(program);
+
+if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(program));
+}
+
+gl.useProgram(program);
+
+const positionBuffer = gl.createBuffer();
+
+gl.bindBuffer(
+    gl.ARRAY_BUFFER,
+    positionBuffer
+);
+
+const positions = new Float32Array([
+    -1, -1,
+     1, -1,
+    -1,  1,
+
+    -1,  1,
+     1, -1,
+     1,  1
+]);
+
+gl.bufferData(
+    gl.ARRAY_BUFFER,
+    positions,
+    gl.STATIC_DRAW
+);
+
+const positionLocation =
+    gl.getAttribLocation(
+        program,
+        "a_position"
+    );
+
+gl.enableVertexAttribArray(
+    positionLocation
+);
+
+gl.vertexAttribPointer(
+    positionLocation,
+    2,
+    gl.FLOAT,
+    false,
+    0,
+    0
+);
+
+const resolutionLocation =
+    gl.getUniformLocation(
+        program,
+        "u_resolution"
+    );
+
+const timeLocation =
+    gl.getUniformLocation(
+        program,
+        "u_time"
+    );
+
+const mouseLocation =
+    gl.getUniformLocation(
+        program,
+        "u_mouse"
+    );
+
+// Added mouse down uniform location
+const mouseDownLocation =
+    gl.getUniformLocation(
+        program,
+        "u_mousedown"
+    );
+
+const previousFrameLocation =
+    gl.getUniformLocation(
+        program,
+        "u_previousFrame"
+    );
+
+
+// Feedback buffers
+
+let bufferA = null;
+let bufferB = null;
+
+
+// Create a texture + framebuffer pair.
+function createBuffer(width, height) {
+
+    const texture = gl.createTexture();
+
+    gl.bindTexture(
+        gl.TEXTURE_2D,
+        texture
+    );
+
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_MIN_FILTER,
+        gl.LINEAR
+    );
+
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_MAG_FILTER,
+        gl.LINEAR
+    );
+
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_WRAP_S,
+        gl.CLAMP_TO_EDGE
+    );
+
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_WRAP_T,
+        gl.CLAMP_TO_EDGE
+    );
+
+    // Allocate texture storage.
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        width,
+        height,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        null
+    );
+
+
+    const framebuffer =
+        gl.createFramebuffer();
+
+    gl.bindFramebuffer(
+        gl.FRAMEBUFFER,
+        framebuffer
+    );
+
+    gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        texture,
+        0
+    );
+
+
+    const status =
+        gl.checkFramebufferStatus(
+            gl.FRAMEBUFFER
+        );
+
+    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+        console.error(
+            "Framebuffer incomplete:",
+            status
+        );
+    }
+
+
+    gl.bindFramebuffer(
+        gl.FRAMEBUFFER,
+        null
+    );
+
+    gl.bindTexture(
+        gl.TEXTURE_2D,
+        null
+    );
+
+
+    return {
+        framebuffer,
+        texture
+    };
+}
+
+
+// Recreate both buffers after resizing.
+function createFeedbackBuffers() {
+
+    if (bufferA) {
+        gl.deleteFramebuffer(bufferA.framebuffer);
+        gl.deleteTexture(bufferA.texture);
+
+        gl.deleteFramebuffer(bufferB.framebuffer);
+        gl.deleteTexture(bufferB.texture);
+    }
+
+    bufferA =
+        createBuffer(
+            canvas.width,
+            canvas.height
+        );
+
+    bufferB =
+        createBuffer(
+            canvas.width,
+            canvas.height
+        );
+
+
+    // Clear both buffers to black.
+    gl.bindFramebuffer(
+        gl.FRAMEBUFFER,
+        bufferA.framebuffer
+    );
+
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+    gl.bindFramebuffer(
+        gl.FRAMEBUFFER,
+        bufferB.framebuffer
+    );
+
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+    gl.bindFramebuffer(
+        gl.FRAMEBUFFER,
+        null
+    );
+}
+
+
+// Initial buffers.
+resize();
+
+
+// ------------------------------------------------------------
+// Render loop
+// ------------------------------------------------------------
+
+let startTime = performance.now();
+
+function render() {
+
+    const currentTime =
+        (performance.now() - startTime) * 0.001;
+
+
+    // --------------------------------------------------------
+    // 1. Render into bufferB
+    // --------------------------------------------------------
+
+    gl.bindFramebuffer(
+        gl.FRAMEBUFFER,
+        bufferB.framebuffer
+    );
+
+    gl.viewport(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    // Pass uniforms.
+    gl.uniform2f(
+        resolutionLocation,
+        canvas.width,
+        canvas.height
+    );
+
+    gl.uniform1f(
+        timeLocation,
+        currentTime
+    );
+
+    gl.uniform2f(
+        mouseLocation,
+        mouse.x,
+        mouse.y
+    );
+
+    // Pass mouse down state to uniform.
+    gl.uniform1f(
+        mouseDownLocation,
+        mouse.down
+    );
+
+
+    // --------------------------------------------------------
+    // Give the shader bufferA (previous frame)
+    // --------------------------------------------------------
+
+    gl.activeTexture(
+        gl.TEXTURE0
+    );
+
+    gl.bindTexture(
+        gl.TEXTURE_2D,
+        bufferA.texture
+    );
+
+    gl.uniform1i(
+        previousFrameLocation,
+        0
+    );
+
+
+    // Draw shader into bufferB.
+    gl.drawArrays(
+        gl.TRIANGLES,
+        0,
+        6
+    );
+
+
+    // --------------------------------------------------------
+    // 2. Display bufferB on the screen
+    // --------------------------------------------------------
+
+    gl.bindFramebuffer(
+        gl.FRAMEBUFFER,
+        null
+    );
+
+    gl.viewport(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    // Copy bufferB to the screen.
+    gl.bindTexture(
+        gl.TEXTURE_2D,
+        bufferB.texture
+    );
+
+    gl.drawArrays(
+        gl.TRIANGLES,
+        0,
+        6
+    );
+
+
+    // --------------------------------------------------------
+    // 3. Swap buffers
+    // --------------------------------------------------------
+
+    const temp = bufferA;
+
+    bufferA = bufferB;
+    bufferB = temp;
+
+
+    requestAnimationFrame(render);
+}
+
+render();
+
+</script>
+
+</body>
+</html>

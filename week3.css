@@ -11,6 +11,8 @@ body {
     justify-content: center;
 }
 
+
 canvas {
-    display: block;
+    width: 1280px !important;
+    height: 960px !important;
 }

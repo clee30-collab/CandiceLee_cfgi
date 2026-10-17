@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Week 6</title>
+    <link rel="stylesheet" href="week6.css">
+</head>
+<body>
+
+    <div id="controller">
+        <button id="minus">−</button>
+        <div id="volume">00%</div>
+        <button id="plus">+</button>
+    </div>
+    <audio id="song" src="dogboy.mp3" autoplay loop></audio>
+    <div id="overlay">
+        <div id="captcha">
+
+            <div id="captcha-header">
+                <div id="header-small">Select all images with</div>
+                <div id="header-big">dogs</div>
+            </div>
+            <div id="grid"></div>
+
+            <div id="error">Please try again.</div>
+
+            <div id="captcha-footer">
+                <button id="verify">VERIFY</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="week6.js"></script>
+</body>
+</html>

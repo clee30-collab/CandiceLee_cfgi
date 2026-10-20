@@ -29,7 +29,12 @@ let verifyButton = document.getElementById("verify");
 let song = document.getElementById("song");
 
 //randomize the volume
-let volume = Math.floor(Math.random() * 101);
+let volume;
+if (Math.random() < 0.5) {
+    volume = 0;
+} else {
+    volume = 100;
+}
 
 let pendingChange = 0;
 

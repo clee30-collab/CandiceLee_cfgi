@@ -37,6 +37,23 @@ export const params = {
         collide: true,     // peas bump into each other (costs GPU time)
         bounce: 20,        // how springy pea-pea hits are
     },
+    // the "found photo" filter (js/look.js)
+    look: {
+        enabled: true,
+        resolution: 0.55,    // render smaller then stretch = soft, low-quality
+        blur: 1.2,           // gaussian blur radius
+        shadows: '#5e8a4a',  // shadows lean green
+        highlights: '#f2f0b0', // highlights lean cool/lemon yellow
+        shadowAmount: 0.9,   // how green the shadows get
+        highlightAmount: 0.3, // how yellow the highlights get (keep low: the table is a highlight)
+        fade: 0.07,          // lifts the blacks (milky, cheap-camera)
+        contrast: 0.9,
+        saturation: 0.9,
+        levels: 40,          // colour steps; lower = more banding
+        grain: 0.07,
+        grainSize: 1.5,      // in screen pixels
+        vignette: 0.25,
+    },
     mood: {
         enabled: true,     // the "structured randomness" state machine
         jitter: 0.8,       // fidget strength

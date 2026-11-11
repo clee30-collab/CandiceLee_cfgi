@@ -22,7 +22,7 @@
     }
     </script>
 </head>
-<body data-state="plate">
+<body>
 
     <canvas id="stage"></canvas>
 
@@ -43,15 +43,15 @@
         <section data-step="food">
             <h2>food</h2>
             <button data-food="peas">peas</button>
-            <button data-food="sauce" data-color="ketchup"><i class="dot" style="background:#c8321e"></i>sauce</button>
-            <button data-food="sauce" data-color="mustard"><i class="dot" style="background:#e3b21a"></i>sauce</button>
-            <button data-food="sauce" data-color="pesto"><i class="dot" style="background:#4f7a28"></i>sauce</button>
+            <button data-food="sauce" data-color="ketchup">sauce (ketchup)</button>
+            <button data-food="sauce" data-color="mustard">sauce (mustard)</button>
+            <button data-food="sauce" data-color="pesto">sauce (pesto)</button>
             <!-- not built yet: enable these as you make them -->
-            <button data-food="noodles" disabled title="not cooked yet">noodles</button>
-            <button data-food="rice" disabled title="not cooked yet">rice</button>
-            <button data-food="jello" disabled title="not cooked yet">jello</button>
-            <button data-food="anchovy" disabled title="not cooked yet">anchovy</button>
-            <button data-food="sprinkles" disabled title="not cooked yet">sprinkles</button>
+            <button data-food="noodles" data-soon disabled title="not cooked yet">noodles</button>
+            <button data-food="rice" data-soon disabled title="not cooked yet">rice</button>
+            <button data-food="jello" data-soon disabled title="not cooked yet">jello</button>
+            <button data-food="anchovy" data-soon disabled title="not cooked yet">anchovy</button>
+            <button data-food="sprinkles" data-soon disabled title="not cooked yet">sprinkles</button>
         </section>
 
         <section data-step="utensil">
@@ -78,6 +78,20 @@
     <div id="pane"></div>
     <div id="badge"></div>
 
+    <!-- show errors on the page (top left) instead of failing silently -->
+    <script>
+        function showError(msg) {
+            var b = document.getElementById('badge');
+            b.textContent = 'error: ' + msg;
+        }
+        window.addEventListener('error', function (e) { showError(e.message); });
+        window.addEventListener('unhandledrejection', function (e) { showError(e.reason && e.reason.message || e.reason); });
+        if (location.protocol === 'file:') {
+            window.addEventListener('DOMContentLoaded', function () {
+                showError('opened as a file. Use Live Server ("Go Live" in VS Code) or python3 -m http.server');
+            });
+        }
+    </script>
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

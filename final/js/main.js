@@ -7,7 +7,12 @@ import { SaucePainter } from './sauce.js';
 import { Peas } from './peas.js';
 import { Parallax } from './parallax.js';
 import { makeCard, drawUtensil } from './cards.js';
-import { createGui } from './gui.js';
+import { createGui, loadPreset } from './gui.js';
+import { Look } from './look.js';
+
+// The locked-in look: if final/assets/preset.json exists, its values
+// replace the defaults in params.js for every visitor.
+await loadPreset(params);
 
 // ------------------------------------------------------------------
 // renderer
@@ -15,7 +20,9 @@ import { createGui } from './gui.js';
 // Safari 26+ on your M2) and falls back to WebGL2 otherwise.
 // ------------------------------------------------------------------
 const canvas = document.getElementById('stage');
-const renderer = new THREE.WebGPURenderer({ canvas, antialias: true });
+// add ?webgl to the URL to test the fallback path on purpose
+const forceWebGL = new URLSearchParams(location.search).has('webgl');
+const renderer = new THREE.WebGPURenderer({ canvas, antialias: true, forceWebGL });
 await renderer.init();
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -25,6 +32,12 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
 status.backend = renderer.backend.isWebGPUBackend ? 'WebGPU' : 'WebGL2';
 document.getElementById('badge').textContent = `rendering with ${status.backend}`;
+
+// if the GPU gives up (e.g. a compute shader takes too long), say so on screen
+renderer.onDeviceLost = (info) => {
+    const b = document.getElementById('badge');
+    b.textContent = `GPU device lost: ${info.message || info.reason || 'unknown'}. try turning off pea "collide"`;
+};
 
 // ------------------------------------------------------------------
 // scene: white "museum wall" table, soft light
@@ -37,6 +50,15 @@ scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 50);
 const parallax = new Parallax(camera);
+const look = new Look(renderer, scene, camera, params.look);
+
+// press F to flip the photo filter on/off
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'f' && !e.metaKey && !e.ctrlKey) {
+        params.look.enabled = !params.look.enabled;
+        pane.refresh();
+    }
+});
 
 const table = new THREE.Mesh(
     new THREE.PlaneGeometry(30, 30).rotateX(-Math.PI / 2),
@@ -128,10 +150,31 @@ const flow = new StateMachine({
     },
 });
 
+// which tray steps are usable in each state (the rest get `disabled`)
+const OPEN_STEPS = {
+    plate: ['plate'],
+    food: ['plate', 'food'],
+    utensil: ['plate', 'food', 'utensil'],
+    play: ['plate', 'food', 'utensil', 'serve'],
+    served: [],
+};
+
+function updateUI() {
+    const open = OPEN_STEPS[flow.state];
+    document.querySelectorAll('#tray [data-step]').forEach((section) => {
+        section.querySelectorAll('button:not([data-soon])').forEach((b) => {
+            b.disabled = !open.includes(section.dataset.step);
+        });
+    });
+    document.getElementById('serve').disabled = !open.includes('serve');
+
+    const holding = hand.id ? ` holding: ${status.hand}` : '';
+    document.getElementById('prompt').textContent = PROMPTS[flow.state] + holding;
+}
+
 flow.onChange((state) => {
-    document.body.dataset.state = state;
-    document.getElementById('prompt').textContent = PROMPTS[state];
     status.flow = state;
+    updateUI();
 });
 
 // ------------------------------------------------------------------
@@ -184,6 +227,7 @@ document.querySelectorAll('[data-food]').forEach((b) => b.addEventListener('clic
     press('[data-food], [data-utensil]', b);
     status.hand = hand.color ? `${hand.color} sauce` : hand.id;
     flow.send('pickFood');
+    updateUI();
 }));
 
 document.querySelectorAll('[data-utensil]').forEach((b) => b.addEventListener('click', () => {
@@ -191,6 +235,7 @@ document.querySelectorAll('[data-utensil]').forEach((b) => b.addEventListener('c
     press('[data-food], [data-utensil]', b);
     status.hand = hand.id;
     flow.send('pickUtensil');
+    updateUI();
 }));
 
 document.getElementById('serve').addEventListener('click', () => flow.send('serve'));
@@ -200,12 +245,14 @@ document.getElementById('again').addEventListener('click', () => {
     status.hand = '-';
     flow.send('again');
 });
+updateUI();
 
 // "serve" = screenshot to gallery
 function serve() {
     for (const c of Object.values(cards)) c.visible = c.userData.shadow.visible = false;
-    renderer.render(scene, camera);
-    const url = renderer.domElement.toDataURL('image/png');
+    look.render(renderer, scene, camera); // snapshot keeps the photo filter
+    // jpeg: smaller than png with grain, and a bit of compression fits the look
+    const url = renderer.domElement.toDataURL('image/jpeg', 0.75);
 
     const img = document.getElementById('served-img');
     img.src = url;
@@ -227,7 +274,9 @@ const ndc = new THREE.Vector2();
 const pointer = { inside: false, down: false, hit: null, lastUV: null, lastDir: new THREE.Vector2(1, 0) };
 
 canvas.addEventListener('pointermove', (e) => {
-    ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return; // hidden tab: avoid dividing by 0
+    ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     parallax.setPointer(ndc.x, -ndc.y);
     pointer.inside = true;
 });
@@ -342,7 +391,7 @@ function updateCards(dt) {
 // ------------------------------------------------------------------
 // tweakpane + loop
 // ------------------------------------------------------------------
-createGui({ params, status, sauce });
+const pane = createGui({ params, status, sauce });
 
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -385,7 +434,7 @@ function frame() {
     sauce.update(params.sauce.normalStrength, params.sauce.gloss);
 
     peas.step(renderer);          // GPU physics
-    renderer.render(scene, camera);
+    look.render(renderer, scene, camera); // scene + photo filter
 }
 renderer.setAnimationLoop(frame);
 
@@ -394,4 +443,4 @@ setPlate('dinner');
 void PLATE_TYPES;
 
 // handy for poking at things from the browser console
-window.food = { scene, camera, renderer, params, flow, mood, peas, sauce, cards, pointer, hand, frame };
+window.food = { scene, camera, renderer, params, flow, mood, peas, sauce, cards, pointer, hand, frame, look };

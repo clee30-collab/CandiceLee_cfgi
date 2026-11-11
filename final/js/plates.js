@@ -10,14 +10,14 @@ export const PLATE_TYPES = {
     dinner: {
         label: 'dinner plate',
         top: 0.06, curve: 0, innerR: 0.72,
-        color: '#f7f5f0', roughness: 0.25,
+        color: '#f7f5f0', roughness: 0.32,
         // [radius, height] points, from the bottom centre outward and back over the rim
         profile: [[0, 0], [0.55, 0], [0.6, 0.03], [0.98, 0.115], [1.0, 0.13], [0.97, 0.14], [0.72, 0.06]],
     },
     bowl: {
         label: 'bowl',
         top: 0.04, curve: 0.6, innerR: 0.82,
-        color: '#f5f2ea', roughness: 0.25,
+        color: '#f5f2ea', roughness: 0.32,
         profile: [[0, 0], [0.42, 0], [0.45, 0.04], [0.93, 0.43], [0.97, 0.47], [0.93, 0.48], [0.82, 0.04 + 0.6 * 0.82 * 0.82]],
     },
     paper: {
@@ -59,6 +59,29 @@ export function buildPlate(type, sauce) {
     body.receiveShadow = true;
     group.add(body);
 
+    // ---- contact shadow ----
+    // a soft dark blur right under the plate. Real shadow maps can't make
+    // this soft "sitting on the table" darkness, so we paint it.
+    const sc = document.createElement('canvas');
+    sc.width = sc.height = 256;
+    const sg = sc.getContext('2d');
+    // alphaMap reads brightness (green channel), not transparency:
+    // grey = how dark the shadow is
+    const grad = sg.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0, 'rgb(115,115,115)');
+    grad.addColorStop(0.55, 'rgb(90,90,90)');
+    grad.addColorStop(0.8, 'rgb(25,25,25)');
+    grad.addColorStop(1, 'rgb(0,0,0)');
+    sg.fillStyle = grad;
+    sg.fillRect(0, 0, 256, 256);
+    const contactGeo = new THREE.PlaneGeometry(2.6, 2.6).rotateX(-Math.PI / 2);
+    const contactMat = new THREE.MeshBasicMaterial({
+        color: '#2b2a22', alphaMap: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false,
+    });
+    const contact = new THREE.Mesh(contactGeo, contactMat);
+    contact.position.y = 0.002;
+    group.add(contact);
+
     // ---- inner eating surface (sauce lives here) ----
     const innerGeo = new THREE.RingGeometry(0, def.innerR, 160, 48);
     innerGeo.rotateX(-Math.PI / 2);
@@ -85,6 +108,7 @@ export function buildPlate(type, sauce) {
         dispose() {
             bodyGeo.dispose(); bodyMat.dispose();
             innerGeo.dispose(); innerMat.dispose();
+            contactGeo.dispose(); contactMat.dispose();
         },
     };
 }

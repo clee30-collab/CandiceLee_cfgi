@@ -1,0 +1,66 @@
+{
+  "light": {
+    "azimuth": 35,
+    "elevation": 40,
+    "intensity": 3.2,
+    "ambient": 0.2,
+    "environment": 0.6,
+    "exposure": 1.15
+  },
+  "parallax": {
+    "strength": 0.6,
+    "smoothing": 5
+  },
+  "sauce": {
+    "brush": 0.07,
+    "thickness": 0.35,
+    "normalStrength": 3,
+    "gloss": 0.6,
+    "colors": {
+      "ketchup": "#c8321e",
+      "mustard": "#e3b21a",
+      "pesto": "#4f7a28"
+    }
+  },
+  "peas": {
+    "color": "#6fae3a",
+    "size": 0.032,
+    "friction": 2.2,
+    "push": 10,
+    "pushRadius": 0.16,
+    "bowlPull": 4,
+    "collide": true,
+    "bounce": 20
+  },
+  "look": {
+    "enabled": true,
+    "resolution": 0.55,
+    "blur": 0.43478260869565216,
+    "shadows": "#5e8a4a",
+    "highlights": "#f2f0b0",
+    "shadowAmount": 0.9,
+    "highlightAmount": 0.3,
+    "fade": 0.07,
+    "contrast": 0.9,
+    "saturation": 0.9,
+    "levels": 255,
+    "grain": 0.07,
+    "grainSize": 1.5,
+    "vignette": 0.25,
+    "paint": {
+      "wobble": 1.6521739130434783,
+      "rowJitter": 0,
+      "ink": 0.2608695652173913,
+      "inkWidth": 1.1847826086956523,
+      "inkThreshold": 0,
+      "inkColor": "#2a2618",
+      "paper": 0.35,
+      "paperColor": "#ffffdb"
+    }
+  },
+  "mood": {
+    "enabled": true,
+    "jitter": 0.8,
+    "nudge": 2.5
+  }
+}

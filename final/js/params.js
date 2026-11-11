@@ -7,10 +7,11 @@
 export const params = {
     light: {
         azimuth: 35,       // degrees around the plate
-        elevation: 55,     // degrees above the table
-        intensity: 2.4,
-        ambient: 0.5,
-        environment: 0.45, // soft reflections (makes ceramic + sauce shine)
+        elevation: 40,     // degrees above the table
+        intensity: 3.2,
+        ambient: 0.2,
+        environment: 0.6, // soft reflections (makes ceramic + sauce shine)
+        exposure: 1.15,    // overall brightness; too high = white plate goes flat
     },
     parallax: {
         strength: 0.6,     // how far the camera swings with the mouse
@@ -49,10 +50,21 @@ export const params = {
         fade: 0.07,          // lifts the blacks (milky, cheap-camera)
         contrast: 0.9,
         saturation: 0.9,
-        levels: 40,          // colour steps; lower = more banding
+        levels: 255,         // colour steps; 255 = smooth, lower = cheap/banded
         grain: 0.07,
         grainSize: 1.5,      // in screen pixels
         vignette: 0.25,
+        // ported from the brushstroke shadertoy
+        paint: {
+            wobble: 2,              // px: straight edges waver like paint
+            rowJitter: 1.2,         // px: each row shifts a little (shaky ink)
+            ink: 0.75,              // soft dark outlines around shapes
+            inkWidth: 1.5,          // px
+            inkThreshold: 0.015,    // lower = more edges get inked
+            inkColor: '#2a2618',
+            paper: 0.35,            // tint toward the cream paper colour
+            paperColor: '#ffffdb',  // shadertoy's vec3(1., 1., .86)
+        },
     },
     mood: {
         enabled: true,     // the "structured randomness" state machine

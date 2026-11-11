@@ -28,7 +28,8 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+// AgX rolls off bright whites gently (ACES crushed the white plate flat)
+renderer.toneMapping = THREE.AgXToneMapping;
 
 status.backend = renderer.backend.isWebGPUBackend ? 'WebGPU' : 'WebGL2';
 document.getElementById('badge').textContent = `rendering with ${status.backend}`;
@@ -43,10 +44,12 @@ renderer.onDeviceLost = (info) => {
 // scene: white "museum wall" table, soft light
 // ------------------------------------------------------------------
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#f3f1ec');
+scene.background = new THREE.Color('#e2ded5');
 
 const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+// blur the room a lot (0.35) so the glossy plate shows soft studio light,
+// not the sharp edges of the room's light panels
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.35).texture;
 
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 50);
 const parallax = new Parallax(camera);
@@ -62,7 +65,7 @@ window.addEventListener('keydown', (e) => {
 
 const table = new THREE.Mesh(
     new THREE.PlaneGeometry(30, 30).rotateX(-Math.PI / 2),
-    new THREE.MeshStandardMaterial({ color: '#f3f1ec', roughness: 1 }),
+    new THREE.MeshStandardMaterial({ color: '#e2ded5', roughness: 1 }),
 );
 table.receiveShadow = true;
 scene.add(table);
@@ -85,6 +88,7 @@ function applyLight() {
     sun.intensity = params.light.intensity;
     hemi.intensity = params.light.ambient;
     scene.environmentIntensity = params.light.environment;
+    renderer.toneMappingExposure = params.light.exposure;
 }
 
 // ------------------------------------------------------------------

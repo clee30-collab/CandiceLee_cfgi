@@ -31,6 +31,10 @@ export function makeCard(image, { width = 0.5, normalStrength = 4, blur = 8, rou
     sg.globalCompositeOperation = 'source-in'; // keep the shape, make it white
     sg.fillStyle = '#fff';
     sg.fillRect(0, 0, sil.width, sil.height);
+    // alphaMap reads brightness, not transparency: put the white shape on black
+    sg.globalCompositeOperation = 'destination-over';
+    sg.fillStyle = '#000';
+    sg.fillRect(0, 0, sil.width, sil.height);
     const shadowMat = new THREE.MeshBasicMaterial({
         color: '#000', alphaMap: new THREE.CanvasTexture(sil), transparent: true, opacity: 0.22, depthWrite: false,
     });

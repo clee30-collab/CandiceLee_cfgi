@@ -24,6 +24,7 @@ export function createGui({ params, status, sauce }) {
     light.addBinding(params.light, 'intensity', { min: 0, max: 6 });
     light.addBinding(params.light, 'ambient', { min: 0, max: 2 });
     light.addBinding(params.light, 'environment', { min: 0, max: 2 });
+    light.addBinding(params.light, 'exposure', { min: 0.3, max: 2 });
 
     const par = kitchen.addFolder({ title: 'parallax' });
     par.addBinding(params.parallax, 'strength', { min: 0, max: 1.5 });
@@ -73,10 +74,19 @@ export function createGui({ params, status, sauce }) {
     const lofi = look.addFolder({ title: 'low quality' });
     lofi.addBinding(L, 'resolution', { min: 0.15, max: 1 });
     lofi.addBinding(L, 'blur', { label: 'gaussian blur', min: 0, max: 4 });
-    lofi.addBinding(L, 'levels', { label: 'color steps', min: 8, max: 128, step: 1 });
+    lofi.addBinding(L, 'levels', { label: 'color steps', min: 8, max: 255, step: 1 });
     lofi.addBinding(L, 'grain', { min: 0, max: 0.3 });
     lofi.addBinding(L, 'grainSize', { label: 'grain size', min: 1, max: 4 });
     lofi.addBinding(L, 'vignette', { min: 0, max: 1 });
+    const paint = look.addFolder({ title: 'paint (shadertoy)' });
+    paint.addBinding(L.paint, 'wobble', { min: 0, max: 8 });
+    paint.addBinding(L.paint, 'rowJitter', { label: 'row jitter', min: 0, max: 6 });
+    paint.addBinding(L.paint, 'ink', { label: 'ink edges', min: 0, max: 1 });
+    paint.addBinding(L.paint, 'inkWidth', { label: 'ink width', min: 0.5, max: 5 });
+    paint.addBinding(L.paint, 'inkThreshold', { label: 'ink threshold', min: 0, max: 0.2 });
+    paint.addBinding(L.paint, 'inkColor', { label: 'ink color' });
+    paint.addBinding(L.paint, 'paper', { min: 0, max: 1 });
+    paint.addBinding(L.paint, 'paperColor', { label: 'paper color' });
 
     // ---- asset tools ----
     const a = kitchen.addFolder({ title: 'assets' });

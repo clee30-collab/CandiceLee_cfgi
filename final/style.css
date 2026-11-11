@@ -1,0 +1,183 @@
+/* clean / minimal museum-wall UI so the food reads as the art */
+
+:root {
+    --wall: #f3f1ec;
+    --ink: #1d1d1b;
+    --mute: #8a877f;
+    --line: #d8d4ca;
+
+    /* Tweakpane light theme (Tweakpane reads these CSS variables) */
+    --tp-base-background-color: #fbfaf7;
+    --tp-base-shadow-color: rgba(0, 0, 0, 0.08);
+    --tp-button-background-color: #1d1d1b;
+    --tp-button-background-color-active: #000;
+    --tp-button-background-color-focus: #333;
+    --tp-button-background-color-hover: #333;
+    --tp-button-foreground-color: #fbfaf7;
+    --tp-container-background-color: rgba(0, 0, 0, 0.05);
+    --tp-container-background-color-active: rgba(0, 0, 0, 0.15);
+    --tp-container-background-color-focus: rgba(0, 0, 0, 0.1);
+    --tp-container-background-color-hover: rgba(0, 0, 0, 0.08);
+    --tp-container-foreground-color: #1d1d1b;
+    --tp-groove-foreground-color: rgba(0, 0, 0, 0.1);
+    --tp-input-background-color: rgba(0, 0, 0, 0.05);
+    --tp-input-background-color-active: rgba(0, 0, 0, 0.15);
+    --tp-input-background-color-focus: rgba(0, 0, 0, 0.1);
+    --tp-input-background-color-hover: rgba(0, 0, 0, 0.08);
+    --tp-input-foreground-color: #1d1d1b;
+    --tp-label-foreground-color: rgba(0, 0, 0, 0.6);
+    --tp-monitor-background-color: rgba(0, 0, 0, 0.04);
+    --tp-monitor-foreground-color: rgba(0, 0, 0, 0.6);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--wall);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#stage {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    cursor: crosshair;
+}
+
+#title {
+    position: fixed;
+    top: 24px;
+    left: 28px;
+    pointer-events: none;
+}
+#title h1 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+#prompt {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--mute);
+}
+
+/* ---------- tray ---------- */
+#tray {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 22px;
+    align-items: flex-end;
+    padding: 12px 16px;
+    max-width: calc(100vw - 32px);
+    overflow-x: auto;
+    background: rgba(251, 250, 247, 0.9);
+    border: 1px solid var(--line);
+}
+#tray section { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+#tray h2 {
+    margin: 0 6px 0 0;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--mute);
+    text-transform: lowercase;
+}
+#tray button, #again {
+    font: inherit;
+    font-size: 12px;
+    padding: 6px 10px;
+    border: 1px solid transparent;
+    background: none;
+    color: var(--ink);
+    cursor: pointer;
+    white-space: nowrap;
+}
+#tray button:hover { border-color: var(--line); }
+#tray button[aria-pressed="true"] { border-color: var(--ink); }
+#tray button:disabled { color: #c3bfb5; cursor: not-allowed; border-color: transparent; }
+#tray .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: 1px;
+}
+#serve {
+    border-color: var(--ink) !important;
+    background: var(--ink) !important;
+    color: var(--wall) !important;
+}
+
+/* the state machine sets body[data-state]; steps you haven't reached yet are faded */
+body[data-state="plate"] [data-step="food"],
+body[data-state="plate"] [data-step="utensil"],
+body[data-state="plate"] #serve,
+body[data-state="food"] [data-step="utensil"],
+body[data-state="food"] #serve,
+body[data-state="utensil"] #serve {
+    opacity: 0.25;
+    pointer-events: none;
+}
+
+/* ---------- served screen ---------- */
+#served {
+    position: fixed;
+    inset: 0;
+    background: var(--wall);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 16px;
+}
+#served[hidden] { display: none; }
+#served figure { margin: 0; text-align: center; }
+#served img {
+    max-width: min(70vw, 720px);
+    max-height: 60vh;
+    background: #fff;
+    padding: 18px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+}
+#served figcaption {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--mute);
+    font-style: italic;
+}
+#again { border-color: var(--ink); }
+#gallery { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+#gallery img { width: 64px; height: 42px; object-fit: cover; background: #fff; padding: 3px; }
+
+/* ---------- tweakpane + badge ---------- */
+#pane {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 280px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+#badge {
+    position: fixed;
+    left: 28px;
+    top: 66px;
+    font-size: 11px;
+    color: var(--mute);
+}
+
+@media (max-width: 700px) {
+    #pane { width: calc(100vw - 32px); top: auto; bottom: 110px; max-height: 40vh; }
+    #badge { display: none; }
+}

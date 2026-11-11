@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play With Your Food</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!--
+      Import map: lets us write `import * as THREE from 'three/webgpu'` in our JS
+      without npm or a build step. This works on GitHub Pages as-is.
+      The version number is pinned so the site never breaks from an update.
+    -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.webgpu.js",
+        "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.webgpu.js",
+        "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.tsl.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+    </script>
+</head>
+<body data-state="plate">
+
+    <canvas id="stage"></canvas>
+
+    <header id="title">
+        <h1>Play With Your Food</h1>
+        <p id="prompt">pick a plate.</p>
+    </header>
+
+    <!-- the bottom tray: plate > food > utensil > serve -->
+    <nav id="tray">
+        <section data-step="plate">
+            <h2>plate</h2>
+            <button data-plate="dinner">dinner plate</button>
+            <button data-plate="bowl">bowl</button>
+            <button data-plate="paper">paper plate</button>
+        </section>
+
+        <section data-step="food">
+            <h2>food</h2>
+            <button data-food="peas">peas</button>
+            <button data-food="sauce" data-color="ketchup"><i class="dot" style="background:#c8321e"></i>sauce</button>
+            <button data-food="sauce" data-color="mustard"><i class="dot" style="background:#e3b21a"></i>sauce</button>
+            <button data-food="sauce" data-color="pesto"><i class="dot" style="background:#4f7a28"></i>sauce</button>
+            <!-- not built yet: enable these as you make them -->
+            <button data-food="noodles" disabled title="not cooked yet">noodles</button>
+            <button data-food="rice" disabled title="not cooked yet">rice</button>
+            <button data-food="jello" disabled title="not cooked yet">jello</button>
+            <button data-food="anchovy" disabled title="not cooked yet">anchovy</button>
+            <button data-food="sprinkles" disabled title="not cooked yet">sprinkles</button>
+        </section>
+
+        <section data-step="utensil">
+            <h2>utensil</h2>
+            <button data-utensil="fork">fork</button>
+            <button data-utensil="spoon">spoon</button>
+            <button data-utensil="knife">knife</button>
+            <button data-utensil="napkin">napkin</button>
+        </section>
+
+        <button id="serve">serve</button>
+    </nav>
+
+    <!-- "served" screen: the plate becomes a framed piece on a white wall -->
+    <div id="served" hidden>
+        <figure>
+            <img id="served-img" alt="your plate">
+            <figcaption id="served-caption"></figcaption>
+        </figure>
+        <button id="again">new plate</button>
+        <div id="gallery"></div>
+    </div>
+
+    <div id="pane"></div>
+    <div id="badge"></div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

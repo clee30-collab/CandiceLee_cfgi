@@ -145,6 +145,12 @@ export class Peas {
         this.mesh.receiveShadow = true;
     }
 
+    // swap the sphere for your own pea shape (radius ~1, centred)
+    setGeometry(geometry) {
+        this.mesh.geometry.dispose();
+        this.mesh.geometry = geometry;
+    }
+
     setPlate(def) {
         this.u.top.value = def.top;
         this.u.curve.value = def.curve;

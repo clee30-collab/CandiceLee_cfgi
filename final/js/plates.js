@@ -29,7 +29,7 @@ export const PLATE_TYPES = {
     },
 };
 
-export function buildPlate(type, sauce) {
+export function buildPlate(type, sauce, model = null) {
     const def = PLATE_TYPES[type];
     const group = new THREE.Group();
 
@@ -57,7 +57,8 @@ export function buildPlate(type, sauce) {
     const body = new THREE.Mesh(bodyGeo, bodyMat);
     body.castShadow = true;
     body.receiveShadow = true;
-    group.add(body);
+    // a Blender model (js/models.js) replaces the built-in body
+    group.add(model ?? body);
 
     // ---- contact shadow ----
     // a soft dark blur right under the plate. Real shadow maps can't make

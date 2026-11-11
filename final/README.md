@@ -36,6 +36,7 @@ On GitHub Pages it just works (no build step). After you push, it's at
 | `js/cards.js` | 2D images placed in 3D with normal maps + fake drop shadow |
 | `js/parallax.js` | camera swings with the mouse → **parallax depth** |
 | `js/plates.js` | dinner plate / bowl / paper plate (lathe geometry) |
+| `js/models.js` | loads your Blender `.glb` models (see `assets/models/README.md`) |
 | `js/gui.js` | Tweakpane panel + asset buttons (export/load preset, bake normal map PNG) |
 
 ## Using Tweakpane to build assets

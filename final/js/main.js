@@ -7,6 +7,7 @@ import { SaucePainter } from './sauce.js';
 import { Peas } from './peas.js';
 import { Parallax } from './parallax.js';
 import { makeCard, drawUtensil } from './cards.js';
+import { loadModels, geometryFromModel } from './models.js';
 import { createGui, loadPreset } from './gui.js';
 import { Look } from './look.js';
 
@@ -101,9 +102,21 @@ scene.add(peas.mesh);
 let plate = null;
 const used = new Set(); // what's on the plate, for the gallery caption
 
+// your Blender models (js/models.js). Missing ones keep the placeholders.
+const { models, problems } = await loadModels();
+if (problems.length) {
+    document.getElementById('badge').textContent += ` · could not load: ${problems.join(', ')}`;
+}
+
+// a modelled pea replaces the plain sphere
+if (models.pea) {
+    const pea = geometryFromModel(models.pea);
+    if (pea) peas.setGeometry(pea.geometry);
+}
+
 function setPlate(type) {
     if (plate) { scene.remove(plate.group); plate.dispose(); }
-    plate = buildPlate(type, sauce);
+    plate = buildPlate(type, sauce, models[type]?.clone());
     scene.add(plate.group);
     sauce.reset(plate.def.color, plate.def.roughness);
     peas.setPlate(plate.def);
@@ -119,8 +132,15 @@ for (const type of ['fork', 'spoon', 'knife', 'napkin']) {
         metalness: type === 'napkin' ? 0 : 0.6,
         roughness: type === 'napkin' ? 0.9 : 0.3,
     });
+    // a Blender model replaces the 2D card. Real 3D casts real shadows,
+    // so it doesn't need the fake drop shadow.
+    if (models[type]) {
+        cards[type] = models[type];
+        cards[type].userData.shadow = null;
+    }
     cards[type].visible = false;
-    scene.add(cards[type], cards[type].userData.shadow);
+    scene.add(cards[type]);
+    if (cards[type].userData.shadow) scene.add(cards[type].userData.shadow);
 }
 
 // what the player is holding
@@ -253,7 +273,10 @@ updateUI();
 
 // "serve" = screenshot to gallery
 function serve() {
-    for (const c of Object.values(cards)) c.visible = c.userData.shadow.visible = false;
+    for (const c of Object.values(cards)) {
+        c.visible = false;
+        if (c.userData.shadow) c.userData.shadow.visible = false;
+    }
     look.render(renderer, scene, camera); // snapshot keeps the photo filter
     // jpeg: smaller than png with grain, and a bit of compression fits the look
     const url = renderer.domElement.toDataURL('image/jpeg', 0.75);
@@ -368,7 +391,8 @@ function updateCards(dt) {
     for (const [type, card] of Object.entries(cards)) {
         const shadow = card.userData.shadow;
         const show = Boolean(hand.kind === 'utensil' && hand.id === type && pointer.hit && flow.state !== 'served');
-        card.visible = shadow.visible = show;
+        card.visible = show;
+        if (shadow) shadow.visible = show;
         if (!show) continue;
 
         const lift = pointer.down ? 0.04 : 0.3; // press down when clicking
@@ -380,6 +404,8 @@ function updateCards(dt) {
         card.rotation.y = THREE.MathUtils.lerp(card.rotation.y, -pointer.lastDir.x * 0.3, 1 - Math.exp(-4 * dt));
 
         // shadow lands on the plate, pushed away from the light by the height
+        // (only 2D cards have a fake shadow; 3D models cast real ones)
+        if (!shadow) continue;
         const height = card.position.y - groundY;
         lightDir.copy(sun.position).normalize();
         shadow.position.set(

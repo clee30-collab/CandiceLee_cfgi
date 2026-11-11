@@ -55,3 +55,9 @@ On GitHub Pages it just works (no build step). After you push, it's at
 - **sprinkles/scallions**: spawn like peas, random rotation per instance via `hash(instanceIndex)`.
 - **knife cutting food**: right now the knife cuts sauce; for peas/jello, mark instances as "cut" in the compute shader.
 - **performance**: pea collisions are brute force (every pea checks every pea). A spatial grid would scale to 50k+ grains for rice.
+
+## Credits
+
+- The paint effects in the photo filter (`js/look.js`): wobble, row jitter, soft ink edges and the cream paper colour, are adapted from the Shadertoy [Xt2GWc](https://www.shadertoy.com/view/Xt2GWc) by **104** (carlco@gmail.com).
+- [three.js](https://threejs.org) (MIT license)
+- [Tweakpane](https://tweakpane.github.io/docs/) by cocopon (MIT license)

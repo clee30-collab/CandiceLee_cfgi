@@ -13,6 +13,9 @@ import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js';
 //         -> split tone (green shadows, cool yellow highlights)
 //         -> faded blacks + soft contrast -> posterize -> grain -> vignette
 //
+// Paint wobble / row jitter / ink edges / paper tint are adapted from
+// a Shadertoy by 104 (carlco@gmail.com): https://www.shadertoy.com/view/Xt2GWc
+//
 // All the numbers are uniforms, so the Tweakpane "look" tab can change
 // them live without rebuilding the shader.
 
@@ -45,6 +48,11 @@ export class Look {
             paperColor: uniform(new THREE.Color()),
         };
 
+        // ---- steps 0, 1b and 2b are adapted from a Shadertoy by 104 ----
+        //      (carlco@gmail.com): https://www.shadertoy.com/view/Xt2GWc
+        //      The wobble, row jitter, soft "dtoa" ink falloff and cream
+        //      paper colour come from that shader.
+        //
         // 0. paint wobble (ported from the shadertoy). We bend the
         //    coordinates we read the scene with, so straight edges
         //    waver like they were painted or badly printed.

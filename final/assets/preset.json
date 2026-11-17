@@ -1,11 +1,11 @@
 {
   "light": {
     "azimuth": 35,
-    "elevation": 40,
-    "intensity": 3.2,
+    "elevation": 28.739130434782606,
+    "intensity": 1.891304347826087,
     "ambient": 0.2,
-    "environment": 0.6,
-    "exposure": 1.15
+    "environment": 0.32608695652173914,
+    "exposure": 1.1130434782608696
   },
   "parallax": {
     "strength": 0.6,
@@ -35,18 +35,18 @@
   "look": {
     "enabled": true,
     "resolution": 0.55,
-    "blur": 0.43478260869565216,
-    "shadows": "#5e8a4a",
-    "highlights": "#f2f0b0",
-    "shadowAmount": 0.9,
-    "highlightAmount": 0.3,
-    "fade": 0.07,
+    "blur": 0,
+    "shadows": "#51663d",
+    "highlights": "#f2e5b0",
+    "shadowAmount": 2,
+    "highlightAmount": 0.08695652173913043,
+    "fade": 0.22499999999999998,
     "contrast": 0.9,
     "saturation": 0.9,
-    "levels": 255,
-    "grain": 0.07,
-    "grainSize": 1.5,
-    "vignette": 0.25,
+    "levels": 99,
+    "grain": 0.06195652173913043,
+    "grainSize": 1.5869565217391304,
+    "vignette": 0,
     "paint": {
       "wobble": 1.6521739130434783,
       "rowJitter": 0,

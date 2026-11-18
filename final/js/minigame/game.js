@@ -1,4 +1,5 @@
 import { StateMachine, RandomMachine } from '../stateMachine.js';
+import { INTRO } from '../intro.js';
 
 export const RULES = {
     peas: 60,              // how many peas you start with
@@ -38,11 +39,12 @@ export const RULES = {
     maxTilt: 28,           // the steepest it can tip, in degrees (28 = the first version's limit)
     tiltSpeed: 260,        // degrees per second it swings to the new notch
     // the game over screen: one line of text repeated as a pattern
-    gameOverText: 'GAME OVER PRESS SPACE TO START OVER',
-    gameOverColor: '#e0141a',
-    gameOverSize: 'clamp(28px, 4.5vw, 64px)', // text size: clamp(smallest, grows with window width, largest)
-    gameOverLineHeight: 0.8, // space between the rows, as a multiple of the text size (1 = normal, lower = tighter)
-    gameOverWeight: 400,   // 100 (thin) to 900 (heaviest)
+    // the game over text: styled exactly like the intro text (font, weight,
+    // size, line spacing, wrapping come from INTRO in js/intro.js), but as
+    // page text over the screen, so it isn't on the plate and the filters
+    // don't touch it
+    gameOverLines: ['GAME OVER', 'PRESS SPACE TO START OVER'],
+    gameOverColor: '#8a8a8a', // grey
 };
 
 // the mini game's story, shown before the "move the plate" slide
@@ -94,35 +96,43 @@ export function start(game) {
     document.body.appendChild(eyes);
 
     // ---- the game over screen ----
-    // plain page text on top of everything, so the photo filter and the
-    // mosaic never touch it. Rows of the same line, every other row
-    // shifted, fill the whole screen like a printed pattern.
+    // the intro's text style, as plain page text above everything: not on
+    // the plate, and the photo filter / eyes look never touch it.
+    // The intro's sizes are in "print pixels" on a 1024-wide picture that
+    // covers the plate, so they're converted to screen pixels using how
+    // wide the plate is on screen right now.
     const gameOver = document.createElement('div');
     Object.assign(gameOver.style, {
-        position: 'fixed', inset: '0', zIndex: 6, display: 'none',
-        overflow: 'hidden', pointerEvents: 'none',
+        position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+        zIndex: 6, display: 'none', pointerEvents: 'none', textAlign: 'center',
         color: RULES.gameOverColor,
-        font: `${RULES.gameOverWeight} ${RULES.gameOverSize}/${RULES.gameOverLineHeight} Figtree, sans-serif`,
-        letterSpacing: '-0.01em', whiteSpace: 'nowrap',
     });
     document.body.appendChild(gameOver);
-    function fillGameOver() {
-        gameOver.textContent = '';
-        const lineH = parseFloat(getComputedStyle(gameOver).fontSize) * RULES.gameOverLineHeight || 60;
-        const rows = Math.ceil(window.innerHeight / lineH) + 1;
-        const line = `${RULES.gameOverText} \u00a0 `.repeat(4);
-        for (let i = 0; i < rows; i++) {
-            const row = document.createElement('div');
-            row.textContent = line;
-            row.style.marginLeft = i % 2 ? '-6em' : '-1em'; // offset every other row
-            gameOver.appendChild(row);
+    function layoutGameOver() {
+        const { THREE, camera } = game;
+        const r = game.plate?.radius ?? 1;
+        const a = new THREE.Vector3(-r, 0, 0).project(camera);
+        const b = new THREE.Vector3(r, 0, 0).project(camera);
+        const platePx = Math.abs(b.x - a.x) * 0.5 * window.innerWidth; // plate width on screen
+        const k = platePx / 1024; // print pixels -> screen pixels
+        const px = INTRO.size * k;
+        Object.assign(gameOver.style, {
+            font: `${INTRO.weight} ${px}px/${INTRO.lineHeight} "${INTRO.font}", sans-serif`,
+            width: `${INTRO.wrap * 1024 * k}px`, // wraps where the intro would
+            webkitTextStroke: `${Math.max(1, px * 0.03)}px ${RULES.gameOverColor}`, // the intro's hairline outline
+        });
+        gameOver.innerHTML = '';
+        for (const line of RULES.gameOverLines) {
+            const el = document.createElement('div');
+            el.textContent = line;
+            gameOver.appendChild(el);
         }
     }
     const showGameOver = (on) => {
-        if (on) fillGameOver();
+        if (on) layoutGameOver();
         gameOver.style.display = on ? 'block' : 'none';
     };
-    window.addEventListener('resize', () => { if (gameOver.style.display === 'block') fillGameOver(); });
+    window.addEventListener('resize', () => { if (gameOver.style.display === 'block') layoutGameOver(); });
 
     // instant on/off. While the eyes are up, the game screen (not the
     // eyes image, which sits on top of it) gets the "caught" look

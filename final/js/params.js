@@ -6,12 +6,23 @@
 
 export const params = {
     light: {
-        azimuth: 35,       // degrees around the plate
+        // the room: an HDRI photo of a bright interior lights everything
+        hdri: 0.35,        // how bright the room light is (low, so the spotlight stands out)
+        hdriRotation: 200, // degrees: turn the room so the windows face another way
+        // a soft window light, only so food still casts shadows
+        shadowLight: 0,    // extra window light from the side (0 = off; the spotlight casts shadows)
+        azimuth: 35,       // degrees around the plate (where the window is)
         elevation: 40,     // degrees above the table
-        intensity: 3.2,
-        ambient: 0.2,
-        environment: 0.6, // soft reflections (makes ceramic + sauce shine)
-        exposure: 1.15,    // overall brightness; too high = white plate goes flat
+        exposure: 1.0,     // overall brightness; too high = white plate goes flat
+        // the spotlight hanging over the plate
+        spot: {
+            intensity: 5,
+            angle: 24,     // degrees: how wide the cone is (bigger = bigger pool of light)
+            softness: 0.75, // 0 = hard edge, 1 = very soft edge
+            height: 4,     // how high above the table it hangs
+            tilt: 14,      // degrees it leans away from straight down (0 = directly overhead)
+            direction: 0,  // which side it leans from: 0 = north (far side), 90 = east, 180 = south, 270 = west
+        },
     },
     parallax: {
         strength: 0.6,     // how far the camera swings with the mouse
@@ -31,16 +42,18 @@ export const params = {
     peas: {
         color: '#6fae3a',
         size: 0.032,
-        friction: 2.2,     // low friction = they roll around a lot
+        damping: 4,        // how fast rolling peas slow down (higher = settle sooner)
+        gravity: 9,        // pulls peas downhill, and down when they fly off the plate
         push: 10,          // utensil push force
         pushRadius: 0.16,
-        bowlPull: 4,       // how hard the bowl drags things to the centre
+        drag: 18,          // how much a moving utensil carries peas with it (flicks fling them)
         collide: true,     // peas bump into each other (costs GPU time)
-        bounce: 20,        // how springy pea-pea hits are
+        stiffness: 6,      // how hard overlapping peas push apart (high = jittery)
     },
     // the "found photo" filter (js/look.js)
     look: {
         enabled: true,
+        opacity: 1,          // how strong the whole filter is: 1 = full, 0 = the plain scene
         resolution: 0.55,    // render smaller then stretch = soft, low-quality
         blur: 1.2,           // gaussian blur radius
         shadows: '#5e8a4a',  // shadows lean green
@@ -65,6 +78,34 @@ export const params = {
             paper: 0.35,            // tint toward the cream paper colour
             paperColor: '#ffffdb',  // shadertoy's vec3(1., 1., .86)
         },
+    },
+    // each plate's ceramic (used when the plate model has no material of its own)
+    plates: {
+        dinner: { color: '#f7f5f0', roughness: 0.35, glaze: 0.7, glazeRoughness: 0.06 },
+        bowl: { color: '#f5f2ea', roughness: 0.35, glaze: 0.7, glazeRoughness: 0.06 },
+        paper: { color: '#f1ece0', roughness: 0.95, glaze: 0, glazeRoughness: 0.5 },
+    },
+    // the camera
+    view: {
+        plateSize: 0.85,   // how much of the screen's height the plate fills (0.85 = 85%)
+    },
+    // tilting the plate with WASD / arrow keys
+    controls: {
+        mode: 'hold',      // 'hold' = hold a key to tip, let go to settle; 'step' = each press tips one notch
+        stepDegrees: 10,   // step mode: how far one key press tips the plate
+        tiltSpeed: 130,    // degrees per second while a key is held (higher = snappier)
+        settleSpeed: 160,  // degrees per second back to level when you let go
+        maxTilt: 30,       // the furthest it tips, in degrees
+    },
+    // polished steel: the utensils AND the instrument tray use this
+    steel: {
+        color: '#d4d7db',
+        roughness: 0.22,   // 0 = mirror, higher = brushed / satin
+    },
+    // the metal instrument tray (js/tray3d.js)
+    tray: {
+        rimDepth: 1.2,     // how steep the raised lip at the edge is (lower = shallower)
+        rimWidth: 3,       // how wide the lip is, in pixels
     },
     mood: {
         enabled: true,     // the "structured randomness" state machine

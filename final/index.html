@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Play With Your Food</title>
     <link rel="stylesheet" href="style.css">
+    <!-- the fonts the text printed on the plate uses -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@100..900&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
 
     <!--
       Import map: lets us write `import * as THREE from 'three/webgpu'` in our JS
@@ -29,41 +33,43 @@
     <header id="title">
         <h1>Play With Your Food</h1>
         <p id="prompt">pick a plate.</p>
+        <div id="badge"></div>
     </header>
 
-    <!-- the bottom tray: plate > food > utensil > serve -->
-    <nav id="tray">
-        <section data-step="plate">
-            <h2>plate</h2>
-            <button data-plate="dinner">dinner plate</button>
-            <button data-plate="bowl">bowl</button>
-            <button data-plate="paper">paper plate</button>
-        </section>
+    <!--
+      the instrument tray: slides out from the left. Click the tray (not a
+      button) to open/close it. Plates and food live here;
+      utensils are objects lying on the table to the right of the plate.
+      Swap the text labels for your vector icons later.
+    -->
+    <aside id="tray" class="open">
+        <div id="tray-surface">
+            <section data-step="plate">
+                <div class="slots">
+                    <button data-plate="dinner">dinner plate</button>
+                    <button data-plate="bowl">bowl</button>
+                    <button data-plate="paper">paper plate</button>
+                </div>
+            </section>
 
-        <section data-step="food">
-            <h2>food</h2>
-            <button data-food="peas">peas</button>
-            <button data-food="sauce" data-color="ketchup">sauce (ketchup)</button>
-            <button data-food="sauce" data-color="mustard">sauce (mustard)</button>
-            <button data-food="sauce" data-color="pesto">sauce (pesto)</button>
-            <!-- not built yet: enable these as you make them -->
-            <button data-food="noodles" data-soon disabled title="not cooked yet">noodles</button>
-            <button data-food="rice" data-soon disabled title="not cooked yet">rice</button>
-            <button data-food="jello" data-soon disabled title="not cooked yet">jello</button>
-            <button data-food="anchovy" data-soon disabled title="not cooked yet">anchovy</button>
-            <button data-food="sprinkles" data-soon disabled title="not cooked yet">sprinkles</button>
-        </section>
+            <section data-step="food">
+                <div class="slots">
+                    <button data-food="peas">peas</button>
+                    <button data-food="sauce" data-color="ketchup">ketchup</button>
+                    <button data-food="sauce" data-color="mustard">mustard</button>
+                    <button data-food="sauce" data-color="pesto">pesto</button>
+                    <!-- not built yet: enable these as you make them -->
+                    <button data-food="noodles" data-soon disabled title="not cooked yet">noodles</button>
+                    <button data-food="rice" data-soon disabled title="not cooked yet">rice</button>
+                    <button data-food="jello" data-soon disabled title="not cooked yet">jello</button>
+                    <button data-food="anchovy" data-soon disabled title="not cooked yet">anchovy</button>
+                    <button data-food="sprinkles" data-soon disabled title="not cooked yet">sprinkles</button>
+                </div>
+            </section>
 
-        <section data-step="utensil">
-            <h2>utensil</h2>
-            <button data-utensil="fork">fork</button>
-            <button data-utensil="spoon">spoon</button>
-            <button data-utensil="knife">knife</button>
-            <button data-utensil="napkin">napkin</button>
-        </section>
-
-        <button id="serve">serve</button>
-    </nav>
+            <button id="serve">serve</button>
+        </div>
+    </aside>
 
     <!-- "served" screen: the plate becomes a framed piece on a white wall -->
     <div id="served" hidden>
@@ -76,7 +82,6 @@
     </div>
 
     <div id="pane"></div>
-    <div id="badge"></div>
 
     <!-- show errors on the page (top left) instead of failing silently -->
     <script>

@@ -2,7 +2,7 @@ import * as THREE from 'three/webgpu';
 import {
     pass, renderOutput, uniform, vec2, vec3, vec4, float, hash, dot, mix, smoothstep,
     luminance, saturation, floor, clamp, time, screenUV, screenCoordinate, distance,
-    screenSize, cos, fract, length,
+    screenSize, cos, fract, length, max, select,
 } from 'three/tsl';
 import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js';
 
@@ -46,6 +46,20 @@ export class Look {
             inkColor: uniform(new THREE.Color()),
             paper: uniform(0),
             paperColor: uniform(new THREE.Color()),
+            // optional mosaic (0 = off). The mini game turns it on while the
+            // eyes are watching
+            pixelate: uniform(0),
+            mosaicSharpen: uniform(0), // over-sharpen the mosaic blocks (0 = off)
+            opacity: uniform(1),       // 1 = full filter, 0 = the plain unfiltered scene
+            // optional "over-compressed video" look (0 = off): blocky,
+            // smooth inside each block, with colour blotches
+            jpeg: uniform(0),          // block size in screen pixels
+            jpegChroma: uniform(0),    // how much the colour blotches drift green / magenta
+            jpegDetail: uniform(0.5),  // how much gradient each block keeps (0 = flat blocks, 1 = smooth)
+            // optional colour multiply (like a Multiply layer) and black point
+            multiplyColor: uniform(new THREE.Color(1, 1, 1)),
+            multiplyAmount: uniform(0),  // 0 = off, 1 = full multiply
+            blackPoint: uniform(0),      // anything darker than this goes to pure black
         };
 
         // ---- steps 0, 1b and 2b are adapted from a Shadertoy by 104 ----
@@ -87,7 +101,46 @@ export class Look {
         };
         const grad = vec2(L(1, 0).sub(L(-1, 0)), L(0, 1).sub(L(0, -1)));
         const edge = smoothstep(u.inkThreshold, u.inkThreshold.add(0.08), length(grad)).mul(u.ink);
-        const inked = mix(blurred.rgb, vec3(u.inkColor), edge);
+        // 1c. mosaic: read the image at the centre of each block, so the
+        //     whole block is one colour (off when pixelate is 0)
+        const mosaicOn = select(u.pixelate.greaterThan(0.5), float(1), float(0));
+        const mosaicCell = max(u.pixelate, 1);
+        const blockUV = floor(screenUV.mul(screenSize).div(mosaicCell)).mul(mosaicCell).add(mosaicCell.mul(0.5)).div(screenSize);
+        //     sharpening: push each block away from the average of its 4
+        //     neighbours, so block edges get harsh bright/dark halos like a
+        //     cheap, over-processed image
+        const block = (dx, dy) => tex.sample(blockUV.add(vec2(dx, dy).mul(mosaicCell).div(screenSize))).rgb;
+        const centre = block(0, 0);
+        const around = block(1, 0).add(block(-1, 0)).add(block(0, 1)).add(block(0, -1)).mul(0.25);
+        const sharpened = max(centre.add(centre.sub(around).mul(u.mosaicSharpen)), vec3(0));
+        const mosaicBase = mix(blurred.rgb, sharpened, mosaicOn);
+
+        // 1d. compression (like a low-bitrate video frame or a re-saved JPEG):
+        //   - brightness is rebuilt per block as a flat colour plus a gentle
+        //     slope (the first, low-frequency part of what JPEG keeps), so
+        //     each block is smooth inside and the seams between blocks show
+        //   - colour is kept at half that resolution again (chroma
+        //     subsampling), and each big block's colour drifts a little
+        //     green or magenta: the blotches in a badly compressed image
+        const jpegOn = select(u.jpeg.greaterThan(0.5), float(1), float(0));
+        const B = max(u.jpeg, 1);
+        const pixel = screenUV.mul(screenSize);
+        const blk = floor(pixel.div(B));
+        const inBlock = pixel.div(B).sub(blk); // 0..1 across the block
+        const at = (fx, fy) => tex.sample(blk.add(vec2(fx, fy)).mul(B).div(screenSize)).rgb;
+        const dc = at(0.5, 0.5);
+        const slopeX = at(0.9, 0.5).sub(at(0.1, 0.5)).div(0.8);
+        const slopeY = at(0.5, 0.9).sub(at(0.5, 0.1)).div(0.8);
+        const lumaBlock = dc.add(slopeX.mul(inBlock.x.sub(0.5)).add(slopeY.mul(inBlock.y.sub(0.5))).mul(u.jpegDetail));
+        const bigBlk = floor(pixel.div(B.mul(2)));
+        const chromaSrc = tex.sample(bigBlk.add(0.5).mul(B.mul(2)).div(screenSize)).rgb;
+        const chroma = chromaSrc.sub(luminance(chromaSrc));
+        const drift = hash(bigBlk.x.add(bigBlk.y.mul(4096)).add(0.5)).sub(0.5);
+        const blotch = vec3(-1, 1, -1).mul(drift).mul(u.jpegChroma); // + = green, - = magenta
+        const jpegRGB = max(vec3(luminance(lumaBlock)).add(chroma).add(blotch), vec3(0));
+        const base = mix(mosaicBase, jpegRGB, jpegOn);
+        // (no ink outlines inside the mosaic: they'd draw the old sharp edges back on)
+        const inked = mix(base, vec3(u.inkColor), edge.mul(float(1).sub(mosaicOn)).mul(float(1).sub(jpegOn)));
 
         // 2. tone map + convert to screen colour, so the grading below
         //    works on the colours you actually see
@@ -112,6 +165,12 @@ export class Look {
         c = c.sub(0.5).mul(u.contrast).add(0.5);
         c = mix(vec3(u.fade), vec3(1), c);
         c = saturation(c, u.saturation);
+
+        // 4b. black point: crush the shadows to pure black (0 = off)
+        c = max(c.sub(u.blackPoint), vec3(0)).div(max(float(1).sub(u.blackPoint), 0.001));
+        // 4c. multiply: tint the whole image like a Multiply layer, so whites
+        //     take on the colour and darks stay dark (0 = off)
+        c = c.mul(mix(vec3(1), vec3(u.multiplyColor), u.multiplyAmount));
 
         // 5. colour steps, with dithering: a tiny per-pixel random offset
         //    before rounding turns hard bands into fine noise. At 255 it
@@ -141,6 +200,10 @@ export class Look {
 
         this.post = new THREE.PostProcessing(renderer);
         this.post.outputColorTransform = false; // we already did it in step 2
+        // 8. opacity: blend the filtered image back toward the plain scene
+        const plain = renderOutput(this.scenePass.getTextureNode('output')).rgb;
+        c = mix(plain, c, u.opacity);
+
         this.post.outputNode = vec4(clamp(c, 0, 1), 1);
     }
 
@@ -169,6 +232,15 @@ export class Look {
         this.u.inkColor.value.set(p.inkColor);
         this.u.paper.value = p.paper;
         this.u.paperColor.value.set(p.paperColor);
+        this.u.pixelate.value = s.pixelate ?? 0;
+        this.u.mosaicSharpen.value = s.mosaicSharpen ?? 0;
+        this.u.opacity.value = s.opacity ?? 1;
+        this.u.jpeg.value = s.jpeg ?? 0;
+        this.u.jpegChroma.value = s.jpegChroma ?? 0;
+        this.u.jpegDetail.value = s.jpegDetail ?? 0.5;
+        this.u.multiplyAmount.value = s.multiplyAmount ?? 0;
+        this.u.blackPoint.value = s.blackPoint ?? 0;
+        if (typeof s.multiplyColor === 'string') this.u.multiplyColor.value.set(s.multiplyColor);
     }
 
     render(renderer, scene, camera) {

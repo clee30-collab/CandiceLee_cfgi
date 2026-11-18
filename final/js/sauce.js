@@ -44,9 +44,10 @@ export class SaucePainter {
     reset(baseColor, baseRoughness) {
         this.base = baseColor;
         this.baseRoughness = baseRoughness;
+        // the sauce layer is see-through: the real plate shows wherever
+        // there's no sauce
         this.color.globalCompositeOperation = 'source-over';
-        this.color.fillStyle = baseColor;
-        this.color.fillRect(0, 0, this.colorCanvas.width, this.colorCanvas.height);
+        this.color.clearRect(0, 0, this.colorCanvas.width, this.colorCanvas.height);
         this.height.clearRect(0, 0, this.heightCanvas.width, this.heightCanvas.height);
         this.dirty = true;
     }
@@ -66,15 +67,24 @@ export class SaucePainter {
         // color canvas
         let S = this.colorCanvas.width;
         let x = u * S, y = (1 - v) * S, r = radius * S;
-        const paintColor = mode === 'erase' ? this.base : color;
         let g = this.color.createRadialGradient(x, y, 0, x, y, r);
-        g.addColorStop(0, hexToRgba(paintColor, 0.95));
-        g.addColorStop(0.65, hexToRgba(paintColor, 0.9));
-        g.addColorStop(1, hexToRgba(paintColor, 0));
+        if (mode === 'erase') {
+            // wipe back to see-through
+            this.color.globalCompositeOperation = 'destination-out';
+            g.addColorStop(0, 'rgba(0,0,0,1)');
+            g.addColorStop(0.65, 'rgba(0,0,0,0.95)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+        } else {
+            this.color.globalCompositeOperation = 'source-over';
+            g.addColorStop(0, hexToRgba(color, 0.95));
+            g.addColorStop(0.65, hexToRgba(color, 0.9));
+            g.addColorStop(1, hexToRgba(color, 0));
+        }
         this.color.fillStyle = g;
         this.color.beginPath();
         this.color.arc(x, y, r, 0, Math.PI * 2);
         this.color.fill();
+        this.color.globalCompositeOperation = 'source-over';
 
         // height canvas
         S = this.heightCanvas.width;

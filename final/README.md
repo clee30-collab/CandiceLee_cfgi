@@ -2,6 +2,32 @@
 
 pick a plate > pick a food > pick a utensil > place and shape > serve
 
+## Two modes, one codebase
+
+The same site runs as two things:
+
+| | URL | what it is |
+| --- | --- | --- |
+| **project** | `final/` | the ongoing final project |
+| **minigame** | `final/?minigame` (or `final/minigame.html`) | the mini game assignment |
+
+Every edit goes in one of three places:
+
+| edit for | where | affects |
+| --- | --- | --- |
+| **both** | `js/*.js` (main, plates, peas, sauce, look, tray, intro...) and `assets/` | both modes |
+| **project only** | `js/project/` | only `final/` |
+| **minigame only** | `js/minigame/` and `assets/minigame/` | only `final/?minigame` |
+
+Mode code gets a `game` object (defined at the bottom of `js/main.js`) with
+the scene, peas, sauce, plate, params, `onFrame(fn)` and `setPrompt(text)`.
+If a mode needs something new from the shared scene, add it to `game`.
+
+The mini game can have its own look: export a preset while on
+`final/?minigame` and save it as `assets/minigame/preset.json`.
+
+Commit messages: start them with `[both]`, `[project]` or `[minigame]`.
+
 ## Running it
 
 ES modules don't load from `file://`, so run a tiny local server from the repo root:
@@ -60,5 +86,8 @@ On GitHub Pages it just works (no build step). After you push, it's at
 ## Credits
 
 - The paint effects in the photo filter (`js/look.js`): wobble, row jitter, soft ink edges and the cream paper colour, are adapted from the Shadertoy [Xt2GWc](https://www.shadertoy.com/view/Xt2GWc) by **104** (carlco@gmail.com).
+- Room lighting: the HDRI [Monochrome Studio 02](https://polyhaven.com/a/monochrome_studio_02) by Grzegorz Wronkowski, [Poly Haven](https://polyhaven.com) (CC0), shrunk to 512×256 in `assets/hdri/`.
+- Alternative room light (kept in `assets/hdri/`): [Lebombo](https://polyhaven.com/a/lebombo) by Greg Zaal, [Poly Haven](https://polyhaven.com) (CC0).
+- Plate print fonts: [Figtree](https://fonts.google.com/specimen/Figtree) by Erik Kennedy and [Commissioner](https://fonts.google.com/specimen/Commissioner) by Kostas Bartsokas (both SIL Open Font License), via Google Fonts.
 - [three.js](https://threejs.org) (MIT license)
 - [Tweakpane](https://tweakpane.github.io/docs/) by cocopon (MIT license)

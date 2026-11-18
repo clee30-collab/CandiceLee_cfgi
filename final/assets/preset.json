@@ -1,15 +1,23 @@
 {
   "light": {
-    "azimuth": 35,
-    "elevation": 28.739130434782606,
-    "intensity": 1.891304347826087,
-    "ambient": 0.2,
-    "environment": 0.32608695652173914,
-    "exposure": 1.1130434782608696
+    "hdri": 0.5217391304347826,
+    "hdriRotation": 109.56521739130436,
+    "shadowLight": 0,
+    "azimuth": -152.6086956521739,
+    "elevation": 21.434782608695652,
+    "exposure": 1.1869565217391305,
+    "spot": {
+      "intensity": 1.7391304347826086,
+      "angle": 48.641304347826086,
+      "softness": 0.4891304347826087,
+      "height": 4.75,
+      "tilt": 14,
+      "direction": 0
+    }
   },
   "parallax": {
-    "strength": 0.6,
-    "smoothing": 5
+    "strength": 1.5,
+    "smoothing": 1
   },
   "sauce": {
     "brush": 0.07,
@@ -25,38 +33,75 @@
   "peas": {
     "color": "#6fae3a",
     "size": 0.032,
-    "friction": 2.2,
-    "push": 10,
+    "damping": 4,
+    "gravity": 9,
+    "push": 11.413043478260871,
     "pushRadius": 0.16,
-    "bowlPull": 4,
+    "drag": 18,
     "collide": true,
-    "bounce": 20
+    "stiffness": 6
   },
   "look": {
     "enabled": true,
-    "resolution": 0.55,
-    "blur": 0,
-    "shadows": "#51663d",
-    "highlights": "#f2e5b0",
-    "shadowAmount": 2,
+    "resolution": 0.5842391304347826,
+    "blur": 0.30434782608695654,
+    "shadows": "#455651",
+    "highlights": "#efffff",
+    "shadowAmount": 1.108695652173913,
     "highlightAmount": 0.08695652173913043,
-    "fade": 0.22499999999999998,
-    "contrast": 0.9,
-    "saturation": 0.9,
-    "levels": 99,
-    "grain": 0.06195652173913043,
-    "grainSize": 1.5869565217391304,
+    "fade": 0,
+    "contrast": 1.108695652173913,
+    "saturation": 1.5,
+    "levels": 207,
+    "grain": 0.06847826086956521,
+    "grainSize": 1.5,
     "vignette": 0,
     "paint": {
-      "wobble": 1.6521739130434783,
+      "wobble": 0,
       "rowJitter": 0,
-      "ink": 0.2608695652173913,
-      "inkWidth": 1.1847826086956523,
+      "ink": 0.13043478260869565,
+      "inkWidth": 3.092391304347826,
       "inkThreshold": 0,
-      "inkColor": "#2a2618",
-      "paper": 0.35,
-      "paperColor": "#ffffdb"
+      "inkColor": "#000000",
+      "paper": 0.17391304347826086,
+      "paperColor": "#e8f7ff"
     }
+  },
+  "plates": {
+    "dinner": {
+      "color": "#f7f5f0",
+      "roughness": 0.35,
+      "glaze": 0.7,
+      "glazeRoughness": 0.06
+    },
+    "bowl": {
+      "color": "#f5f2ea",
+      "roughness": 0.35,
+      "glaze": 0.7,
+      "glazeRoughness": 0.06
+    },
+    "paper": {
+      "color": "#f1ece0",
+      "roughness": 0.95,
+      "glaze": 0,
+      "glazeRoughness": 0.5
+    }
+  },
+  "view": {
+    "plateSize": 0.85
+  },
+  "controls": {
+    "tiltSpeed": 130,
+    "settleSpeed": 160,
+    "maxTilt": 30
+  },
+  "steel": {
+    "color": "#d4d7db",
+    "roughness": 0.22
+  },
+  "tray": {
+    "rimDepth": 0.4565217391304348,
+    "rimWidth": 1.6195652173913042
   },
   "mood": {
     "enabled": true,

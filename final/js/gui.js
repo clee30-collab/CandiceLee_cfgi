@@ -12,23 +12,27 @@ function download(filename, blobOrUrl) {
     a.click();
 }
 
-export function createGui({ params, status, sauce }) {
-    const pane = new Pane({ title: 'controls', container: document.getElementById('pane') });
+export function createGui({ params, status, sauce, onTrayChange = () => {}, onLightChange = () => {}, onViewChange = () => {}, onSteelChange = () => {} }) {
+    const pane = new Pane({ title: 'controls', container: document.getElementById('pane'), expanded: false });
     const tabs = pane.addTab({ pages: [{ title: 'kitchen' }, { title: 'look' }] });
     const kitchen = tabs.pages[0];
     const look = tabs.pages[1];
 
     const light = kitchen.addFolder({ title: 'light' });
-    light.addBinding(params.light, 'azimuth', { min: -180, max: 180 });
-    light.addBinding(params.light, 'elevation', { min: 5, max: 89 });
-    light.addBinding(params.light, 'intensity', { min: 0, max: 6 });
-    light.addBinding(params.light, 'ambient', { min: 0, max: 2 });
-    light.addBinding(params.light, 'environment', { min: 0, max: 2 });
+    light.on('change', () => onLightChange()); // the tray is lit by these too
+    light.addBinding(params.light, 'hdri', { label: 'room (hdri)', min: 0, max: 3 });
+    light.addBinding(params.light, 'hdriRotation', { label: 'room rotation', min: 0, max: 360 });
+    light.addBinding(params.light.spot, 'intensity', { label: 'spotlight', min: 0, max: 20 });
+    light.addBinding(params.light.spot, 'angle', { label: 'spot size', min: 5, max: 60 });
+    light.addBinding(params.light.spot, 'softness', { label: 'spot softness', min: 0, max: 1 });
+    light.addBinding(params.light.spot, 'height', { label: 'spot height', min: 1.5, max: 8 });
+    light.addBinding(params.light.spot, 'tilt', { label: 'spot tilt', min: 0, max: 45 });
+    light.addBinding(params.light.spot, 'direction', { label: 'spot from (0=N)', min: 0, max: 360 });
+    light.addBinding(params.light, 'shadowLight', { label: 'window light', min: 0, max: 4 });
+    light.addBinding(params.light, 'azimuth', { label: 'window azimuth', min: -180, max: 180 });
+    light.addBinding(params.light, 'elevation', { label: 'window elevation', min: 5, max: 89 });
     light.addBinding(params.light, 'exposure', { min: 0.3, max: 2 });
 
-    const par = kitchen.addFolder({ title: 'parallax' });
-    par.addBinding(params.parallax, 'strength', { min: 0, max: 1.5 });
-    par.addBinding(params.parallax, 'smoothing', { min: 1, max: 15 });
 
     const s = kitchen.addFolder({ title: 'sauce', expanded: false });
     s.addBinding(params.sauce, 'brush', { min: 0.02, max: 0.2 });
@@ -42,12 +46,13 @@ export function createGui({ params, status, sauce }) {
     const p = kitchen.addFolder({ title: 'peas (compute shader)', expanded: false });
     p.addBinding(params.peas, 'color');
     p.addBinding(params.peas, 'size', { min: 0.015, max: 0.06 });
-    p.addBinding(params.peas, 'friction', { min: 0, max: 8 });
+    p.addBinding(params.peas, 'damping', { min: 0, max: 15 });
+    p.addBinding(params.peas, 'gravity', { min: 0, max: 30 });
     p.addBinding(params.peas, 'push', { min: 0, max: 30 });
     p.addBinding(params.peas, 'pushRadius', { min: 0.05, max: 0.5 });
-    p.addBinding(params.peas, 'bowlPull', { min: 0, max: 10 });
+    p.addBinding(params.peas, 'drag', { label: 'utensil drag', min: 0, max: 60 });
     p.addBinding(params.peas, 'collide');
-    p.addBinding(params.peas, 'bounce', { min: 0, max: 60 });
+    p.addBinding(params.peas, 'stiffness', { min: 0, max: 30 });
 
     const m = kitchen.addFolder({ title: 'mood (state machine)', expanded: false });
     m.addBinding(params.mood, 'enabled');
@@ -63,6 +68,7 @@ export function createGui({ params, status, sauce }) {
     // ---- look tab: the photo filter (js/look.js) ----
     const L = params.look;
     look.addBinding(L, 'enabled', { label: 'filter on' });
+    look.addBinding(L, 'opacity', { label: 'filter opacity', min: 0, max: 1 });
     const tone = look.addFolder({ title: 'color' });
     tone.addBinding(L, 'shadows');
     tone.addBinding(L, 'highlights');
@@ -89,6 +95,36 @@ export function createGui({ params, status, sauce }) {
     paint.addBinding(L.paint, 'paperColor', { label: 'paper color' });
 
     // ---- asset tools ----
+    // the ceramic for each plate: colour, how matte the body is, and the
+    // clear glaze on top
+    const mat = kitchen.addFolder({ title: 'plate material', expanded: false });
+    for (const [type, label] of [['dinner', 'dinner plate'], ['bowl', 'bowl'], ['paper', 'paper plate']]) {
+        const f = mat.addFolder({ title: label, expanded: type === 'dinner' });
+        f.addBinding(params.plates[type], 'color');
+        f.addBinding(params.plates[type], 'roughness', { label: 'body roughness', min: 0, max: 1 });
+        f.addBinding(params.plates[type], 'glaze', { min: 0, max: 1 });
+        f.addBinding(params.plates[type], 'glazeRoughness', { label: 'glaze roughness', min: 0, max: 1 });
+    }
+
+    const view = kitchen.addFolder({ title: 'view', expanded: false });
+    view.addBinding(params.view, 'plateSize', { label: 'plate size', min: 0.4, max: 1.2 });
+    view.on('change', () => onViewChange());
+
+    const ctl = kitchen.addFolder({ title: 'plate tilt (WASD)', expanded: false });
+    ctl.addBinding(params.controls, 'tiltSpeed', { label: 'tilt speed', min: 10, max: 400 });
+    ctl.addBinding(params.controls, 'settleSpeed', { label: 'settle speed', min: 10, max: 400 });
+    ctl.addBinding(params.controls, 'maxTilt', { label: 'max tilt', min: 5, max: 60 });
+
+    const steelFolder = kitchen.addFolder({ title: 'steel (utensils + tray)', expanded: false });
+    steelFolder.addBinding(params.steel, 'color');
+    steelFolder.addBinding(params.steel, 'roughness', { min: 0, max: 1 });
+    steelFolder.on('change', () => onSteelChange());
+
+    const tr = kitchen.addFolder({ title: 'tray', expanded: false });
+    tr.addBinding(params.tray, 'rimDepth', { label: 'rim depth', min: 0, max: 6 });
+    tr.addBinding(params.tray, 'rimWidth', { label: 'rim width', min: 1, max: 20 });
+    tr.on('change', () => onTrayChange());
+
     const a = kitchen.addFolder({ title: 'assets' });
     // the published look = whatever was loaded at startup (assets/preset.json)
     const published = structuredClone(params);
@@ -107,6 +143,7 @@ export function createGui({ params, status, sauce }) {
         if (file) {
             mergeInto(params, JSON.parse(await file.text()));
             pane.refresh();
+            onTrayChange();
         }
         fileInput.value = '';
     });
@@ -118,6 +155,7 @@ export function createGui({ params, status, sauce }) {
     a.addButton({ title: 'reset to published' }).on('click', () => {
         mergeInto(params, published);
         pane.refresh();
+        onTrayChange();
     });
 
     return pane;

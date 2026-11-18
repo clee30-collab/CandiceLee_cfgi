@@ -96,10 +96,12 @@ function fitCamera() {
 fitCamera();
 const look = new Look(renderer, scene, camera, params.look);
 
-// press F to flip the photo filter on/off, Escape to put a utensil down
+// press F to flip the photo filter on/off (a mode can switch this key off
+// with game.filterKey.enabled = false), Escape to put a utensil down
+const filterKey = { enabled: true };
 window.addEventListener('keydown', (e) => {
     if (e.target.closest?.('input, textarea')) return; // typing in the panel
-    if (e.key === 'f' && !e.metaKey && !e.ctrlKey) {
+    if (e.key === 'f' && !e.metaKey && !e.ctrlKey && filterKey.enabled) {
         params.look.enabled = !params.look.enabled;
         pane.refresh();
         metalTray?.draw();
@@ -801,6 +803,7 @@ const game = {
     get plate() { return plate; },
     setPlate,
     resetTilt,
+    filterKey,
     onFrame: (fn) => frameHooks.push(fn),
     setPrompt: (text) => { document.getElementById('prompt').textContent = text; },
 };

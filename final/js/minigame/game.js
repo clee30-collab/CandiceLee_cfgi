@@ -43,8 +43,9 @@ export const RULES = {
     // size, line spacing, wrapping come from INTRO in js/intro.js), but as
     // page text over the screen, so it isn't on the plate and the filters
     // don't touch it
-    gameOverLines: ['GAME OVER', 'PRESS SPACE TO START OVER'],
+    gameOverLines: ['Game over', 'press space to start'],
     gameOverColor: '#8a8a8a', // grey
+    gameOverWeight: 240,     // null = same weight as the intro text; or a number, 300 (light) to 900 (heaviest)
 };
 
 // the mini game's story, shown before the "move the plate" slide
@@ -67,6 +68,7 @@ export function start(game) {
     const TUNE = new URLSearchParams(location.search).has('tune');
     for (const id of TUNE ? ['title', 'tray'] : ['title', 'pane', 'tray']) document.getElementById(id).style.display = 'none';
     params.mood.enabled = false; // no random table bumps flinging peas for you
+    game.filterKey.enabled = false; // F doesn't turn the filter off in the game
 
     // ---- tilting: tap to tip one notch at a time, much steeper than the project ----
     Object.assign(params.controls, {
@@ -117,7 +119,7 @@ export function start(game) {
         const k = platePx / 1024; // print pixels -> screen pixels
         const px = INTRO.size * k;
         Object.assign(gameOver.style, {
-            font: `${INTRO.weight} ${px}px/${INTRO.lineHeight} "${INTRO.font}", sans-serif`,
+            font: `${RULES.gameOverWeight ?? INTRO.weight} ${px}px/${INTRO.lineHeight} "${INTRO.font}", sans-serif`,
             width: `${INTRO.wrap * 1024 * k}px`, // wraps where the intro would
             webkitTextStroke: `${Math.max(1, px * 0.03)}px ${RULES.gameOverColor}`, // the intro's hairline outline
         });

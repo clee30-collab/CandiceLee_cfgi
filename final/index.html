@@ -4,6 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Play With Your Food</title>
+    <!--
+      Mini game: hide the project's interface BEFORE anything is drawn, so
+      it doesn't flash on screen while the 3D scene loads. (The mini game's
+      own code also hides these once it starts; this just makes it instant.)
+      Tuning mode (?minigame&tune) keeps the control panel.
+    -->
+    <script>
+        (function () {
+            var q = new URLSearchParams(location.search);
+            if (q.has('minigame')) document.documentElement.classList.add('minigame-mode');
+            if (q.has('tune')) document.documentElement.classList.add('tune-mode');
+        })();
+    </script>
+    <style>
+        .minigame-mode #title,
+        .minigame-mode #tray,
+        .minigame-mode:not(.tune-mode) #pane { display: none !important; }
+    </style>
     <link rel="stylesheet" href="style.css">
     <!-- the fonts the text printed on the plate uses -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
